@@ -1,12 +1,12 @@
-import os
-import json
 import argparse
+import json
+import os
 
 import numpy as np
 from keras.callbacks import ModelCheckpoint
 from keras.utils import Sequence
 
-from model_definitions import build_model, save_weights
+from model_definitions import build_model
 
 DATA_DIR = './data'
 
