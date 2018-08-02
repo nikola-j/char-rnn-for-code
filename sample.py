@@ -7,7 +7,7 @@ from keras.layers import LSTM, Dropout, Dense, Activation, \
     Embedding
 from keras.models import Sequential
 
-from .model_definitions import load_weights
+from model_definitions import load_weights
 
 DATA_DIR = './data'
 
@@ -15,7 +15,7 @@ DATA_DIR = './data'
 def build_sample_model(vocab_size):
     model = Sequential()
     model.add(Embedding(vocab_size, 512, batch_input_shape=(1, 1)))
-    for i in range(3):
+    for i in range(2):
         model.add(LSTM(256, return_sequences=(i != 2), stateful=True))
         model.add(Dropout(0.2))
 

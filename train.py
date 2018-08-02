@@ -1,17 +1,21 @@
 import argparse
 import json
 import os
+from random import shuffle, seed
 
 import numpy as np
 from keras.callbacks import ModelCheckpoint
 from keras.utils import Sequence
-
 from model_definitions import build_model
 
 DATA_DIR = './data'
 
 BATCH_SIZE = 128
 SEQ_LENGTH = 512
+
+
+# Set seed so that each re-run the data is shuffled the same way
+seed(5)
 
 
 class BatchReader(Sequence):
@@ -41,6 +45,22 @@ class BatchReader(Sequence):
 
 
 def train(text, epochs=100, load_w=None):
+    # Split by samples
+    text = text.split('\n')
+    print("Number of functions:", len(text))
+
+    # Filter out long functions
+    text = list(filter((lambda line: len(line) < 500), text))
+
+    print("Number of functions after reduction:", len(text))
+
+    shuffle(text)
+    text = '\n'.join(text)
+
+    # Set what percentage of data to use for training
+    text = text[:len(text) // 10]
+
+    # Create vocabulary
     char_to_idx = {ch: i for (i, ch) in enumerate(sorted(list(set(text))))}
     with open(os.path.join(DATA_DIR, 'char_to_idx.json'), 'w') as f:
         json.dump(char_to_idx, f)
@@ -57,12 +77,20 @@ def train(text, epochs=100, load_w=None):
     mc = ModelCheckpoint('model/weights.{epoch:02d}-{loss:.2f}.hdf5',
                          monitor='loss')
 
-    batch_gen = BatchReader(tokenized_text, vocab_size)
+    dataset_split_loc = -len(tokenized_text) // 10
+
+    batch_gen_train = BatchReader(tokenized_text[:dataset_split_loc],
+                                  vocab_size)
+    batch_gen_val = BatchReader(tokenized_text[dataset_split_loc:],
+                                vocab_size)
 
     if load_w is not None:
         model.load_weights(load_w)
 
-    model.fit_generator(batch_gen, steps_per_epoch=len(batch_gen),
+    model.fit_generator(batch_gen_train,
+                        steps_per_epoch=len(batch_gen_train),
+                        validation_data=batch_gen_val,
+                        validation_steps=len(batch_gen_val),
                         epochs=epochs, callbacks=[mc], workers=10)
 
 
@@ -77,5 +105,6 @@ if __name__ == '__main__':
                         help='Load checkpoint')
     args = parser.parse_args()
 
-    train(open(os.path.join(DATA_DIR, args.input)).read(), args.epochs,
+    train(open(os.path.join(DATA_DIR, args.input)).read(),
+          args.epochs,
           args.load)
