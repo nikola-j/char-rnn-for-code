@@ -58,7 +58,7 @@ def train(text, epochs=100, load_w=None):
     text = '\n'.join(text)
 
     # Set what percentage of data to use for training
-    text = text[:len(text) // 10]
+    text = text[:len(text) // 1]
 
     # Create vocabulary
     char_to_idx = {ch: i for (i, ch) in enumerate(sorted(list(set(text))))}
