@@ -17,3 +17,5 @@ To sample the model:
 ```bash
 $ python sample.py 100
 ```
+
+The dataset can be downloaded from [here](https://github.com/EdinburghNLP/code-docstring-corpus/blob/master/V2/mono/mono_methods_bodies.gz)
