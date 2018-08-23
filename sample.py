@@ -2,11 +2,11 @@ import argparse
 import json
 import os
 
-from tqdm import tqdm_notebook
 import numpy as np
 from keras.layers import LSTM, Dropout, Dense, Activation, \
     Embedding
 from keras.models import Sequential
+from tqdm import tqdm_notebook
 
 from model_definitions import load_weights
 
@@ -102,75 +102,6 @@ class SampleClass():
 
         return seed, sampled_probs
 
-    def beam_sample(self, num_chars, seed, beam_length=5):
-        sampled = [self.char_to_idx[c] for c in seed]
-
-        most_probable = [sampled]
-        most_probable_probs = [np.log(1)]
-
-        next_probable = []
-        next_probable_probs = []
-        for i in range(num_chars):
-            for sent, prob in zip(most_probable, most_probable_probs):
-                if sent[-1] == 0:
-                    continue
-                self.init_model(sent)
-                res = self.predict_char(sent[-1])
-
-                probable_next = np.argpartition(res, -beam_length)[
-                                -beam_length:]
-                probable_next_prob = np.partition(res, -beam_length)[
-                                     -beam_length:]
-
-                # next_probable.append(sent+)
-                for next_char, next_prob in zip(probable_next,
-                                                probable_next_prob):
-                    next_probable.append(sent + [next_char])
-                    next_probable_probs.append(prob - np.log(next_prob))
-
-            print(len(most_probable_probs))
-
-            chars_with_probs = []
-            for i in zip(most_probable_probs + next_probable_probs,
-                         most_probable + next_probable
-                         ):
-                chars_with_probs.append((i[0], i[1]))
-
-            most_probable_probs, most_probable = \
-                [list(t) for t in zip(
-                    *sorted(chars_with_probs)[-beam_length:]
-                )]
-
-            next_probable_probs = []
-            next_probable = []
-
-        for i in range(len(most_probable)):
-            print(self.idxs_to_chars(most_probable[i])[0])
-            print(most_probable_probs[i])
-
-        return most_probable[-1]
-        #     batch = np.zeros((1, 1))
-        #     if sampled:
-        #         batch[0, 0] = sampled[-1]
-        #     else:
-        #         batch[0, 0] = np.random.randint(self.vocab_size)
-        #
-        #     result = self.model.predict_on_batch(batch).ravel()
-        #
-        #     probable_next = np.argpartition(result, -beam_length)[-beam_length:]
-        #     probable_next_prob = np.partition(result, -beam_length)[
-        #                          -beam_length:]
-        #
-        #     for c, p in zip(probable_next, probable_next_prob):
-        #         most_probable.append(sampled + c)
-        #         most_probable_probs.append()
-        #
-        #     sampled.append(single_sample)
-        #     if not multiple and (single_sample == 0):
-        #         break
-        #
-        # return sampled
-
     def predict_char(self, char=None):
         batch = np.zeros((1, 1))
         if char:
@@ -189,20 +120,21 @@ class SampleClass():
 
     def keras_rnn_predict(self, samples):
         """for every sample, calculate probability for every possible label
-        you need to supply your RNN model and maxlen - the length of sequences it can handle
         """
         res = []
         for samp in samples:
             self.init_model(samp)
-            res.append(self.predict_char(samp[-1]))
+
+            if len(samp) == 0:
+                res.append(self.predict_char())
+            else:
+                res.append(self.predict_char(samp[-1]))
 
         return np.array(res)
 
     def beamsearch(self, k=3, num_chars=100, init_seed=None, eos="DCNL"):
         """return k samples (beams) and their NLL scores, each sample is a sequence of labels,
-        all samples starts with an `empty` label and end with `eos` or truncated to length of `maxsample`.
-        You need to supply `predict` which returns the label probability of each sample.
-        `use_unk` allow usage of `oov` (out-of-vocabulary) label in samples
+        all samples starts with init seed label and end with `eos` or truncated to length of `num_chars`.
         """
 
         if init_seed is None:
@@ -215,7 +147,7 @@ class SampleClass():
         live_scores = [0]
         eos = [self.char_to_idx[c] for c in eos]
 
-        pbar = tqdm_notebook(total=k)
+        # pbar = tqdm_notebook(total=k)
 
         prev_dead_k = 0
         while live_k and dead_k < k:
@@ -251,22 +183,8 @@ class SampleClass():
             live_k = len(live_samples)
 
             if dead_k > prev_dead_k:
-                pbar.update(dead_k - prev_dead_k)
+                # pbar.update(dead_k - prev_dead_k)
                 prev_dead_k = dead_k
 
-        pbar.close()
+        # pbar.close()
         return dead_samples + live_samples
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Sample some text from the trained model.')
-    parser.add_argument('file', type=str, help='file checkpoint to sample from')
-    parser.add_argument('--seed', default='',
-                        help='initial seed for the generated text')
-    parser.add_argument('--len', type=int, default=512,
-                        help='number of characters to sample (default 512)')
-    parser.add_argument('--not_random', action='store_false')
-    args = parser.parse_args()
-
-    print(sample(args.file, args.seed, args.len, args.not_random))

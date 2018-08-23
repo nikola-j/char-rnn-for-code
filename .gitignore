@@ -7,3 +7,5 @@ model/
 .DS_Store
 
 __pycache__
+
+!data/char_to_idx.json
