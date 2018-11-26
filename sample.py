@@ -17,7 +17,6 @@ class SampleClass():
     def __init__(self, model_file):
         self.char_to_idx = os.path.join(
             os.path.dirname(os.path.dirname(model_file)),
-            'data',
             'char_to_idx.json')
         with open(self.char_to_idx) as f:
             self.char_to_idx = json.load(f)
@@ -88,7 +87,6 @@ class SampleClass():
                 result = self.predict_char(seed[-1])
             else:
                 result = self.predict_char(np.random.randint(self.vocab_size))
-
             if random:
                 single_sample = np.random.choice(range(self.vocab_size),
                                                  p=result)

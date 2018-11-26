@@ -8,11 +8,8 @@ from keras.callbacks import ModelCheckpoint
 from keras.utils import Sequence
 from model_definitions import build_model
 
-DATA_DIR = './data'
-
 BATCH_SIZE = 128
 SEQ_LENGTH = 512
-
 
 # Set seed so that each re-run the data is shuffled the same way
 seed(5)
@@ -102,9 +99,11 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=100,
                         help='number of epochs to train for')
     parser.add_argument('--load', default=None, type=str,
-                        help='Load checkpoint')
+                        help='Load checkpoint file')
+    parser.add_argument('--data', default='./data', type=str,
+                        help='Choose data folder')
     args = parser.parse_args()
 
-    train(open(os.path.join(DATA_DIR, args.input)).read(),
+    train(open(os.path.join(args.data, args.input)).read(),
           args.epochs,
           args.load)
